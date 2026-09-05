@@ -1,0 +1,15 @@
+/build*
+/.vscode
+/cpm_modules
+/.cache
+/.xmake
+.DS_Store
+
+# Generated artifacts
+*.log
+*.map
+*.exe
+a.out
+compile_commands.json
+.pytest_cache/
+.ruff_cache/
