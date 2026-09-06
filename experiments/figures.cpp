@@ -65,11 +65,13 @@ auto main(int argc, char* argv[]) -> int {
     const auto seed = argc > 7 ? std::stoul(argv[7]) : 831;
     const auto outdir = argc > 8 ? argv[8] : ".";
 
-    const auto netlist = read_json_edges(file);
+    const auto directed = read_directed_json_edges(file);
+    const auto& netlist = directed.netlist;
     const auto n = netlist.number_of_modules();
     const std::optional<double> cap_ratio = ratio > 0.0 ? std::optional<double>{ratio}
                                                         : std::nullopt;
-    NnsPlacer placer{netlist, NnsConfig{gx, gy, delta, delta, std::nullopt, cap_ratio}};
+    NnsPlacer placer{netlist, NnsConfig{gx, gy, delta, delta, std::nullopt, cap_ratio},
+                     directed.net_driver};
 
     Placement place;
     place[0].assign(n, 0);
@@ -81,7 +83,7 @@ auto main(int argc, char* argv[]) -> int {
     const auto result = placer.run(place, max_iters);
     const auto hpwl = placer.calc_total_HPWL(place);
 
-    const auto routing = route_all_nets(netlist, place, gx, gy);
+    const auto routing = route_all_nets(netlist, place, gx, gy, directed.net_driver);
     const auto maps = build_congestion_maps(routing, gx, gy);
     const auto segments = routing.hsegments.size() + routing.vsegments.size();
 

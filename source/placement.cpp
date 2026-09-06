@@ -24,12 +24,32 @@
 #include <mywheel/map_adapter.hpp>
 #include <recti/interval.hpp>
 
-auto create_flow_graph(const SimpleNetlist& hyprgraph) -> FlowGraph {
+auto create_flow_graph(const SimpleNetlist& hyprgraph,
+                       const std::vector<std::optional<node_t>>& net_driver) -> FlowGraph {
     const auto nmod = static_cast<node_t>(hyprgraph.number_of_modules());
+    const auto num_nets = hyprgraph.number_of_nets();
+    const auto directed = net_driver.size() == static_cast<std::size_t>(num_nets);
     std::vector<std::vector<node_t>> adj(nmod);
+    std::size_t net_index = 0;
     for (const auto net : hyprgraph.nets) {
         const auto& members = hyprgraph.gr[net];
         std::vector<node_t> verts(members.begin(), members.end());
+        if (directed) {
+            const auto& driver = net_driver[net_index];
+            if (driver && std::find(verts.begin(), verts.end(), *driver) != verts.end()) {
+                for (const auto sink : verts) {
+                    if (sink == *driver) continue;
+                    if (hyprgraph.get_module_weight(static_cast<uint32_t>(*driver)) == 0U
+                        && hyprgraph.get_module_weight(static_cast<uint32_t>(sink)) == 0U) {
+                        continue;  // ignore pad to pad connections
+                    }
+                    adj[*driver].push_back(sink);
+                    adj[sink].push_back(*driver);
+                }
+                ++net_index;
+                continue;
+            }
+        }
         for (const auto v1 : verts) {
             for (const auto v2 : verts) {
                 if (hyprgraph.get_module_weight(static_cast<uint32_t>(v2)) == 0U) continue;
@@ -37,6 +57,7 @@ auto create_flow_graph(const SimpleNetlist& hyprgraph) -> FlowGraph {
                 adj[v2].push_back(v1);
             }
         }
+        ++net_index;
     }
     for (auto& lst : adj) {
         std::sort(lst.begin(), lst.end());
@@ -45,8 +66,9 @@ auto create_flow_graph(const SimpleNetlist& hyprgraph) -> FlowGraph {
     return FlowGraph{std::move(adj)};
 }
 
-NnsPlacer::NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config)
-    : hyprgraph(netlist), cfg(config), ugraph{create_flow_graph(netlist)} {
+NnsPlacer::NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config,
+                     std::vector<std::optional<node_t>> net_driver)
+    : hyprgraph(netlist), cfg(config), ugraph{create_flow_graph(netlist, std::move(net_driver))} {
     const auto num_modules = static_cast<node_t>(hyprgraph.number_of_modules());
     const auto num_pads = static_cast<node_t>(hyprgraph.num_pads);
     count[0].assign(static_cast<std::size_t>(cfg.grid[0]) + 2, 0);

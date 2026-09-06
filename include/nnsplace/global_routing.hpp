@@ -62,19 +62,24 @@ struct RoutingAnalysis {
 
 /** \brief Route every net of a placed netlist and analyse the cut usage.
  *
- *  The source of a net is its I/O pad when it has one, else its first module
- *  (mirroring the Python pipeline).  Every net is routed with
- *  ``route_with_steiners()`` so the reported wire length covers the whole
- *  netlist; the recorded L-shaped runs and cut crossings use the same branch
- *  orientation that the routed placement figure draws.
+ *  The source of a net is the **driver** module given in ``net_driver`` when a
+ *  direction-aware vector is supplied (one optional driver per net, in net
+ *  order); otherwise it falls back to the I/O pad of the net, else its first
+ *  module (mirroring the Python pipeline).  Direction-aware routing uses
+ *  ``route_with_constraints()`` and only records the branches of pad-driven
+ *  nets in the figure segments, while the cut usage always covers every net.
+ *  Undirected netlists use ``route_with_steiners()`` and draw every net that
+ *  touches an I/O pad.
  *
- *  \param[in] netlist the hypergraph netlist (cells then I/O pads)
- *  \param[in] place   the placement solution to route
- *  \param[in] gx      core grid width  (number of columns)
- *  \param[in] gy      core grid height (number of rows)
+ *  \param[in] netlist    the hypergraph netlist (cells then I/O pads)
+ *  \param[in] place      the placement solution to route
+ *  \param[in] gx         core grid width  (number of columns)
+ *  \param[in] gy         core grid height (number of rows)
+ *  \param[in] net_driver optional per-net driver module ids (net order)
  *  \return the routing analysis of the netlist
  */
-auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx, int gy)
+auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
+                    const std::vector<std::optional<node_t>>& net_driver = {})
     -> RoutingAnalysis;
 
 /** \brief Raw per-cell congestion counts derived from a routing analysis.

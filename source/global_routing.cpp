@@ -109,27 +109,44 @@ void add_tree_runs(const Tree& tree, bool vertical_first, bool keep_runs,
 
 }  // namespace
 
-auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx, int gy)
-    -> RoutingAnalysis {
+auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
+                    const std::vector<std::optional<node_t>>& net_driver) -> RoutingAnalysis {
     RoutingAnalysis analysis;
     analysis.h.assign(static_cast<std::size_t>(gy + 2),
                       std::vector<std::int64_t>(static_cast<std::size_t>(gx + 1), 0));
     analysis.v.assign(static_cast<std::size_t>(gx + 2),
                       std::vector<std::int64_t>(static_cast<std::size_t>(gy + 1), 0));
 
+    const auto nmod = netlist.number_of_modules();
+    const auto directed = !net_driver.empty();
+
     for (const auto net : netlist.nets) {
         const auto& members = netlist.gr[net];
         std::vector<std::size_t> verts(members.begin(), members.end());
         if (verts.size() < 2) continue;
 
-        std::size_t source = verts.front();
-        bool has_pad = false;
-        for (const auto m : verts) {
-            if (is_pad(netlist, m)) {
-                source = m;
-                has_pad = true;
-                break;
+        std::optional<std::size_t> driver;
+        if (directed) {
+            const auto net_index = static_cast<std::size_t>(net) - nmod;
+            if (net_index < net_driver.size()) driver = net_driver[net_index];
+        }
+
+        std::size_t source;
+        bool draw_run;
+        if (driver && std::find(verts.begin(), verts.end(), *driver) != verts.end()) {
+            source = *driver;
+            draw_run = is_pad(netlist, source);
+        } else {
+            source = verts.front();
+            bool has_pad = false;
+            for (const auto m : verts) {
+                if (is_pad(netlist, m)) {
+                    source = m;
+                    has_pad = true;
+                    break;
+                }
             }
+            draw_run = directed ? is_pad(netlist, source) : has_pad;
         }
 
         const auto src_x = static_cast<int>(place[0][source]);
@@ -143,11 +160,15 @@ auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx
         }
 
         recti::GlobalRouter<IntPoint> router{IntPoint{src_x, src_y}, std::move(terminals)};
-        router.route_with_steiners();
+        if (directed) {
+            router.route_with_constraints();
+        } else {
+            router.route_with_steiners();
+        }
         const auto& tree = router.get_tree();
         analysis.total_wirelength += tree.calculate_total_wirelength();
 
-        add_tree_runs(tree, vertical_first(place, source, gx, gy), has_pad,
+        add_tree_runs(tree, vertical_first(place, source, gx, gy), draw_run,
                       analysis.hsegments, analysis.vsegments, analysis.h, analysis.v);
     }
     return analysis;

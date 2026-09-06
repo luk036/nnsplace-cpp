@@ -73,8 +73,15 @@ inline auto has_directed_edge(const FlowGraph& fg, const node_t u, const node_t 
  *  ``v1 -> v2`` and ``v2 -> v1`` are added unless module ``v2`` carries weight
  *  zero (an I/O pad).  Repeated edges are collapsed; self loops appear for
  *  every non-pad module that belongs to at least one net.
+ *
+ *  When ``net_driver`` is provided (one optional driver per net, in net
+ *  order) only the **driver -> sink** connections of every net are added, so
+ *  the worst wire length is measured on source-to-sink wires only; nets whose
+ *  driver is unknown fall back to the all-pairs clique.
  */
-auto create_flow_graph(const SimpleNetlist& hyprgraph) -> FlowGraph;
+auto create_flow_graph(const SimpleNetlist& hyprgraph,
+                       const std::vector<std::optional<node_t>>& net_driver = {})
+    -> FlowGraph;
 
 namespace nnsplace_detail {
 
@@ -157,10 +164,14 @@ class NnsPlacer {
 
     /** \brief Construct the placer and derive all grid limits.
      *
-     *  \param netlist  hypergraph netlist to place
-     *  \param config   placement configuration (copied)
+     *  \param netlist    hypergraph netlist to place
+     *  \param config     placement configuration (copied)
+     *  \param net_driver optional per-net driver module (net order); when
+     *                    non-empty the flow graph only links each driver to
+     *                    its sinks so the worst wire length is driver->sink
      */
-    NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config);
+    NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config,
+              std::vector<std::optional<node_t>> net_driver = {});
 
     /** \brief cost(length, axis) = length * delta[axis] */
     auto cost(const Coord length, const int axis) const -> Coord { return length * cfg.delta[axis]; }
