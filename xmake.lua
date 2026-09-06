@@ -47,6 +47,8 @@ target("NnsPlace")
         add_includedirs(dir, {public = true})
     end
     add_files("source/*.cpp")
+    -- physdes-cpp global router (explicitly instantiated for Point<int,int>)
+    add_files("../physdes-cpp/source/global_router.cpp")
     add_packages("abseil", "nlohmann_json", {public = true})
 
 target("test_nnsplace")
@@ -63,6 +65,14 @@ target("nnsplace_standalone")
     add_deps("NnsPlace")
     add_includedirs("include", {public = true})
     add_files("standalone/source/main.cpp")
+    add_packages("abseil", "nlohmann_json")
+    set_rundir(os.projectdir()) -- resolve "testcases/p1.json" at runtime
+
+target("nnsplace_figures")
+    set_kind("binary")
+    add_deps("NnsPlace")
+    add_includedirs("include", {public = true})
+    add_files("experiments/figures.cpp")
     add_packages("abseil", "nlohmann_json")
     set_rundir(os.projectdir()) -- resolve "testcases/p1.json" at runtime
 

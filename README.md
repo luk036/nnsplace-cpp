@@ -58,3 +58,18 @@ ctest --test-dir build-cmake -C Debug --output-on-failure
 xmake run nnsplace_standalone testcases/p1.json 50 50 40 2000   # C++ (seed 831)
 python experiments/parity.py testcases/p1.json 50 50             # Python (seed 831)
 ```
+
+## Routed figures & congestion maps
+
+`nnsplace_figures` runs the placer, routes every net with the physdes global
+router (`recti::GlobalRouter`) and emits an SVG of the routed placement (the
+straight pad-to-module lines replaced by the orthogonal routing-tree branches)
+plus green-yellow-red congestion heat maps for the x direction, the y
+direction and their element-wise maximum.  Usage:
+
+```bash
+xmake run nnsplace_figures testcases/p1.json 32 32 40 2000 0 831 ./out
+```
+
+writes `ioloop32x32-routed.svg` and `congestion32x32-{x,y,combined}.svg` into
+`./out`.  Each map's heat scale is normalised to its own busiest cut.

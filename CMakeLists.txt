@@ -218,6 +218,10 @@ target_compile_options(
                          "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4702>"
 )
 
+# global_routing.cpp needs the physdes global router.  CPM's Recti::Recti ships
+# its own log_with_spdlog, so skip the local no-op definition on this path.
+target_compile_definitions(${PROJECT_NAME} PUBLIC NNSPLACE_HAVE_RECTI_LOGGER)
+
 target_include_directories(
   ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                          $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
@@ -256,6 +260,16 @@ if(NNSPLACE_BUILD_STANDALONE)
   target_link_libraries(NnsPlaceStandalone PRIVATE NnsPlace::NnsPlace)
   target_enable_warnings(NnsPlaceStandalone)
   target_enable_abseil_suppressions(NnsPlaceStandalone)
+
+  # Routed placement + congestion map figure generator (mirrors the xmake
+  # "nnsplace_figures" target; lives under experiments/ so the standalone
+  # glob above keeps exactly one main()).
+  add_executable(NnsPlaceFigures experiments/figures.cpp)
+  set_target_properties(NnsPlaceFigures PROPERTIES OUTPUT_NAME "NnsPlaceFigures"
+                                              CXX_STANDARD 20)
+  target_link_libraries(NnsPlaceFigures PRIVATE NnsPlace::NnsPlace)
+  target_enable_warnings(NnsPlaceFigures)
+  target_enable_abseil_suppressions(NnsPlaceFigures)
 endif()
 
 # ---------------------------------------------------------------------------
