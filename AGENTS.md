@@ -5,7 +5,10 @@ This file provides context and coding guidelines for AI agents working in this r
 ## Project Overview
 
 - **Name**: nnsplace (No-Nonsense Placement)
-- **Type**: Header-only C++ placement library for FPGA-style designs
+- **Type**: Compiled C++20 placement library (public headers + `source/*.cpp`).
+  Rule: a function body of more than 15 lines must live in a `.cpp`; the
+  headers declare it (≤15-line bodies stay inline).  The only exceptions are
+  templates (e.g. `hungarian`), which cannot move out of a header.
 - **Language**: C++20
 - **Build System**: xmake (see `xmake.lua`; sibling headers are compiled from
   `../netlistx-cpp/source/*.cpp` exactly like netoptim-cpp compiles ellalgo sources)
@@ -130,3 +133,10 @@ Follow the sibling projects (netoptim-cpp, digraphx-cpp):
 - **CMake**: added mirroring netoptim-cpp's structure (CPM + `INSTALL_ONLY`,
   fmt/spdlog/abseil handling, PackageProject, doctest, format/coverage/docs
   targets).  Configure with VS 18 2026; see Build Commands above.
+- **Compiled library refactor**: function bodies longer than 15 lines moved
+  from the headers into `source/*.cpp` (`placement_cfg.cpp`, `readwrite.cpp`,
+  `matching.cpp`, `placement.cpp`).  Both `xmake.lua` (target `NnsPlace`) and
+  `CMakeLists.txt` (static `NnsPlace`, CXX_STANDARD 20) build the library and
+  link it into the tests and standalone.  `hungarian` stays a header template
+  (cannot be moved without explicit instantiation).  Verified: xmake
+  31/31 + 19315 assertions, then CMake ctest 100% (identical results).

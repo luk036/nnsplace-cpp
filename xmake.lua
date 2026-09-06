@@ -2,8 +2,6 @@ add_rules("mode.debug", "mode.release", "mode.coverage")
 
 add_requires("doctest", {alias = "doctest"})
 add_requires("abseil", {alias = "abseil"})
-add_requires("fmt", {alias = "fmt"})
-add_requires("spdlog", {alias = "spdlog"})
 add_requires("nlohmann_json", {alias = "nlohmann_json"})
 
 set_languages("c++20")
@@ -11,7 +9,6 @@ set_languages("c++20")
 if is_mode("release") then
     set_optimize("fastest")
 end
--- require std::optional
 
 if is_mode("coverage") then
     add_cxflags("-ftest-coverage", "-fprofile-arcs", {force = true})
@@ -19,7 +16,6 @@ end
 
 if is_plat("linux") then
     set_warnings("all", "error")
-    -- Check if we're on Termux/Android
     local termux_prefix = os.getenv("PREFIX")
     if termux_prefix then
         add_cxflags("-Wno-unused-command-line-argument", {force = true})
@@ -27,55 +23,47 @@ if is_plat("linux") then
         add_sysincludedirs(termux_prefix .. "/include", {public = true})
     end
 elseif is_plat("windows") then
-    add_cxflags("/EHsc /utf-8 /W4 /WX /wd4702", {force = true})
+    add_cxflags("/EHsc /utf-8 /W4 /WX /wd4702", { force = true })
 end
 
--- netlistx-cpp library: JSON/hMetis netlist readers (mirrors how
--- netoptim-cpp compiles ../ellalgo-cpp/source/*.cpp)
-local netlistx_dir = path.join(os.projectdir(), "../netlistx-cpp")
-local netlistx_inc = path.join(netlistx_dir, "include")
-local netlistx_src = path.join(netlistx_dir, "source/*.cpp")
+-- sibling header include directories (read-only, resolved by relative path)
+local sibling_includes = {
+    "../digraphx-cpp/include",
+    "../fractions-cpp/include",
+    "../mywheel-cpp/include",
+    "../netlistx-cpp/include",
+    "../physdes-cpp/include",
+    "../py2cpp/include",
+    "../xnetwork-cpp/include",
+}
 
-target("NetlistX")
+-- compiled library: large function bodies live in source/*.cpp, the headers
+-- only declare them (bodies <= 15 lines stay inline)
+
+target("NnsPlace")
     set_kind("static")
-    add_includedirs(netlistx_inc, {public = true})
-    add_includedirs("../py2cpp/include", {public = true})
-    add_includedirs("../xnetwork-cpp/include", {public = true})
-    add_files(netlistx_src)
-    add_packages("fmt", "spdlog", "nlohmann_json")
-    set_group("Dependencies")
-
--- header-only placement library + doctest suite
+    add_includedirs("include", {public = true})
+    for _, dir in ipairs(sibling_includes) do
+        add_includedirs(dir, {public = true})
+    end
+    add_files("source/*.cpp")
+    add_packages("abseil", "nlohmann_json", {public = true})
 
 target("test_nnsplace")
     set_kind("binary")
-    add_deps("NetlistX")
+    add_deps("NnsPlace")
     add_includedirs("include", {public = true})
-    add_includedirs("../digraphx-cpp/include", {public = true})
-    add_includedirs("../fractions-cpp/include", {public = true})
-    add_includedirs("../physdes-cpp/include", {public = true})
-    add_includedirs("../mywheel-cpp/include", {public = true})
-    add_includedirs("../netlistx-cpp/include", {public = true})
-    add_includedirs("../py2cpp/include", {public = true})
-    add_includedirs("../xnetwork-cpp/include", {public = true})
     add_files("test/source/*.cpp")
-    add_packages("doctest", "abseil", "fmt", "spdlog", "nlohmann_json")
+    add_packages("doctest", "abseil")
     add_tests("default")
     set_rundir(os.projectdir()) -- resolve "testcases/p1.json" at runtime
 
 target("nnsplace_standalone")
     set_kind("binary")
-    add_deps("NetlistX")
+    add_deps("NnsPlace")
     add_includedirs("include", {public = true})
-    add_includedirs("../digraphx-cpp/include", {public = true})
-    add_includedirs("../fractions-cpp/include", {public = true})
-    add_includedirs("../physdes-cpp/include", {public = true})
-    add_includedirs("../mywheel-cpp/include", {public = true})
-    add_includedirs("../netlistx-cpp/include", {public = true})
-    add_includedirs("../py2cpp/include", {public = true})
-    add_includedirs("../xnetwork-cpp/include", {public = true})
     add_files("standalone/source/main.cpp")
-    add_packages("abseil", "fmt", "spdlog", "nlohmann_json")
+    add_packages("abseil", "nlohmann_json")
     set_rundir(os.projectdir()) -- resolve "testcases/p1.json" at runtime
 
 --

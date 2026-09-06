@@ -199,7 +199,7 @@ set(SPECIFIC_LIBS NetlistX::NetlistX DiGraphX::DiGraphX Recti::Recti MyWheel::My
 )
 
 # ---------------------------------------------------------------------------
-# Library target (header-only)
+# Library target (compiled: large bodies in source/*.cpp, headers declare only)
 # ---------------------------------------------------------------------------
 
 # Note: globbing sources is considered bad practice as CMake's generators may not detect new files
@@ -207,19 +207,25 @@ set(SPECIFIC_LIBS NetlistX::NetlistX DiGraphX::DiGraphX Recti::Recti MyWheel::My
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
 )
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
 
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} ${headers} ${sources})
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
 target_compile_options(
-  ${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->"
-                            "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4702>"
+  ${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->"
+                         "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4702>"
 )
 
 target_include_directories(
-  ${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+                         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
 )
+
+# The .cpp translation units (and any consumer of the public headers) need the
+# sibling header libraries; mirroring netlistx-cpp's compiled-library pattern.
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SPECIFIC_LIBS} ${SPECIFIC_ABSEIL_LIBS})
 
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.
@@ -247,9 +253,7 @@ if(NNSPLACE_BUILD_STANDALONE)
   file(GLOB NNSPLACE_STANDALONE_SOURCES CONFIGURE_DEPENDS "standalone/source/*.cpp")
   add_executable(NnsPlaceStandalone ${NNSPLACE_STANDALONE_SOURCES})
   set_target_properties(NnsPlaceStandalone PROPERTIES OUTPUT_NAME "NnsPlace" CXX_STANDARD 20)
-  target_link_libraries(NnsPlaceStandalone PRIVATE NnsPlace::NnsPlace ${SPECIFIC_LIBS}
-                                                        ${SPECIFIC_ABSEIL_LIBS}
-  )
+  target_link_libraries(NnsPlaceStandalone PRIVATE NnsPlace::NnsPlace)
   target_enable_warnings(NnsPlaceStandalone)
   target_enable_abseil_suppressions(NnsPlaceStandalone)
 endif()
@@ -280,8 +284,7 @@ if(NNSPLACE_BUILD_TESTS)
   file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "test/source/*.cpp")
   add_executable(NnsPlaceTests ${TEST_SOURCES})
   target_link_libraries(
-    NnsPlaceTests PRIVATE doctest::doctest NnsPlace::NnsPlace ${SPECIFIC_LIBS}
-                          ${SPECIFIC_ABSEIL_LIBS}
+    NnsPlaceTests PRIVATE doctest::doctest NnsPlace::NnsPlace
   )
   set_target_properties(NnsPlaceTests PROPERTIES CXX_STANDARD 20)
   target_enable_warnings(NnsPlaceTests)

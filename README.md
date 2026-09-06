@@ -1,7 +1,10 @@
 # nnsplace-cpp
 
-Affordable placement C++ library (for FPGA), a header-only C++ port of
+Affordable placement C++ library (for FPGA), a C++20 port of
 [luk036/nnsplace](https://github.com/luk036/nnsplace).
+
+Function bodies of more than 15 lines live in `source/*.cpp`; the headers only
+declare them (bodies of 15 lines or fewer stay inline).
 
 The placer builds a directed flow graph from a hypergraph netlist, generates a
 random initial placement, then minimizes the worst (HPWL) wire length with
