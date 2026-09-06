@@ -1,0 +1,36 @@
+name: Install
+
+on:
+  push:
+    branches: [master, main, dev]
+  pull_request:
+    branches: [master, main, dev]
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and install library
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DNNSPLACE_BUILD_TESTS=OFF -DNNSPLACE_BUILD_STANDALONE=OFF
+          cmake --build build
+          sudo cmake --install build
+          rm -rf build
+
+      - name: Install system dependencies for consumer
+        run: sudo apt-get install -y libfmt-dev nlohmann-json3-dev
+
+      - name: Configure consumer
+        run: cmake -Stest_installed -B build_installed -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build consumer
+        run: cmake --build build_installed
+
+      - name: Test
+        run: ctest --test-dir build_installed --output-on-failure

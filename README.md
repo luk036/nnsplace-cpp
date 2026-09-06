@@ -1,5 +1,10 @@
 # nnsplace-cpp
 
+[![Actions Status](https://github.com/luk036/nnsplace-cpp/workflows/MacOS/badge.svg)](https://github.com/luk036/nnsplace-cpp/actions)
+[![Actions Status](https://github.com/luk036/nnsplace-cpp/workflows/Windows/badge.svg)](https://github.com/luk036/nnsplace-cpp/actions)
+[![Actions Status](https://github.com/luk036/nnsplace-cpp/workflows/Ubuntu/badge.svg)](https://github.com/luk036/nnsplace-cpp/actions)
+[![Actions Status](https://github.com/luk036/nnsplace-cpp/workflows/Install/badge.svg)](https://github.com/luk036/nnsplace-cpp/actions)
+
 Affordable placement C++ library (for FPGA), a C++20 port of
 [luk036/nnsplace](https://github.com/luk036/nnsplace).
 

@@ -1,0 +1,33 @@
+# Configuration for Doxygen for use with CMake
+# Only options that deviate from the default are included
+# To create a new Doxyfile containing all available options, call `doxygen -g`
+
+# Get Project name and version from CMake
+PROJECT_NAME = @DOXYGEN_PROJECT_NAME@
+PROJECT_NUMBER = @DOXYGEN_PROJECT_VERSION@
+
+# Add sources
+INPUT = @DOXYGEN_PROJECT_ROOT@/README.md @DOXYGEN_PROJECT_ROOT@/include @DOXYGEN_PROJECT_ROOT@/source
+EXTRACT_ALL = YES
+RECURSIVE = YES
+OUTPUT_DIRECTORY = @DOXYGEN_OUTPUT_DIRECTORY@
+
+# Use the README as a main page
+USE_MDFILE_AS_MAINPAGE = @DOXYGEN_PROJECT_ROOT@/README.md
+
+# set relative include paths
+FULL_PATH_NAMES = YES
+STRIP_FROM_PATH = @DOXYGEN_PROJECT_ROOT@/include @DOXYGEN_PROJECT_ROOT@/source @DOXYGEN_PROJECT_ROOT@
+
+# Generate HTML directly
+GENERATE_HTML = YES
+GENERATE_XML = NO
+GENERATE_LATEX = NO
+XML_PROGRAMLISTING = NO
+CREATE_SUBDIRS = NO
+
+# MathJax configuration (client-side rendering, no LaTeX toolchain needed)
+USE_MATHJAX = YES
+
+# Exclude external dependencies fetched by CPM.cmake
+EXCLUDE_PATTERNS = */build/_deps/*
