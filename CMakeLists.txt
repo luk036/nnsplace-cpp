@@ -229,7 +229,23 @@ target_include_directories(
 
 # The .cpp translation units (and any consumer of the public headers) need the
 # sibling header libraries; mirroring netlistx-cpp's compiled-library pattern.
-target_link_libraries(${PROJECT_NAME} PUBLIC ${SPECIFIC_LIBS} ${SPECIFIC_ABSEIL_LIBS})
+#
+# abseil is deliberately NOT linked here: its targets have no install-export
+# rules in this build, so referencing absl::flat_hash_map from the exported
+# NnsPlace target fails CMake generation with "requires target ... that is not
+# in any export set".  nnsplace only reaches abseil transitively through the
+# digraphx headers (min_parametric_q.hpp -> neg_cycle_q.hpp -> <absl/...>), so
+# its headers are enough for this library's own compilation and the abseil
+# target is linked explicitly by the executables below (mirrors digraphx-cpp).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SPECIFIC_LIBS})
+if(SPECIFIC_ABSEIL_LIBS AND TARGET ${SPECIFIC_ABSEIL_LIBS})
+  get_target_property(NNSPLACE_ABSL_INCLUDE_DIRS ${SPECIFIC_ABSEIL_LIBS}
+                      INTERFACE_INCLUDE_DIRECTORIES
+  )
+  if(NNSPLACE_ABSL_INCLUDE_DIRS)
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${NNSPLACE_ABSL_INCLUDE_DIRS})
+  endif()
+endif()
 
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.
@@ -257,7 +273,9 @@ if(NNSPLACE_BUILD_STANDALONE)
   file(GLOB NNSPLACE_STANDALONE_SOURCES CONFIGURE_DEPENDS "standalone/source/*.cpp")
   add_executable(NnsPlaceStandalone ${NNSPLACE_STANDALONE_SOURCES})
   set_target_properties(NnsPlaceStandalone PROPERTIES OUTPUT_NAME "NnsPlace" CXX_STANDARD 20)
-  target_link_libraries(NnsPlaceStandalone PRIVATE NnsPlace::NnsPlace)
+  target_link_libraries(
+    NnsPlaceStandalone PRIVATE NnsPlace::NnsPlace ${SPECIFIC_LIBS} ${SPECIFIC_ABSEIL_LIBS}
+  )
   target_enable_warnings(NnsPlaceStandalone)
   target_enable_abseil_suppressions(NnsPlaceStandalone)
 
@@ -267,7 +285,8 @@ if(NNSPLACE_BUILD_STANDALONE)
   add_executable(NnsPlaceFigures experiments/figures.cpp)
   set_target_properties(NnsPlaceFigures PROPERTIES OUTPUT_NAME "NnsPlaceFigures"
                                               CXX_STANDARD 20)
-  target_link_libraries(NnsPlaceFigures PRIVATE NnsPlace::NnsPlace)
+  target_link_libraries(NnsPlaceFigures PRIVATE NnsPlace::NnsPlace ${SPECIFIC_LIBS}
+                                                 ${SPECIFIC_ABSEIL_LIBS})
   target_enable_warnings(NnsPlaceFigures)
   target_enable_abseil_suppressions(NnsPlaceFigures)
 endif()
@@ -298,7 +317,8 @@ if(NNSPLACE_BUILD_TESTS)
   file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "test/source/*.cpp")
   add_executable(NnsPlaceTests ${TEST_SOURCES})
   target_link_libraries(
-    NnsPlaceTests PRIVATE doctest::doctest NnsPlace::NnsPlace
+    NnsPlaceTests PRIVATE doctest::doctest NnsPlace::NnsPlace ${SPECIFIC_LIBS}
+                           ${SPECIFIC_ABSEIL_LIBS}
   )
   set_target_properties(NnsPlaceTests PROPERTIES CXX_STANDARD 20)
   target_enable_warnings(NnsPlaceTests)
