@@ -186,6 +186,16 @@ namespace fractions {
         CONSTEXPR14 T denominator() const noexcept { return _denominator; }
 
         /**
+         * @brief Explicit truncating conversion to the integer type.
+         *
+         * Lets a caller run an integer distance domain (``static_cast<T>``)
+         * while the parametric API still produces exact rationals; used by the
+         * NNS placer's Howard relaxation to keep per-edge arithmetic integral.
+         * @return The truncated integer value (numerator / denominator).
+         */
+        explicit operator T() const noexcept { return _numerator / _denominator; }
+
+        /**
          * @brief Check if the fraction is an integer (denominator == 1).
          * @return true if denominator is 1, false otherwise.
          */

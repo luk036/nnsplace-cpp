@@ -102,6 +102,10 @@ Follow the sibling projects (netoptim-cpp, digraphx-cpp):
    otherwise-identical copy whose guards route the quotient through
    `_max_div`, which yields `max` for a zero divisor.  It is found before
    `../fractions-cpp/include` on the include path (only our headers include it).
+   It additionally defines `explicit operator T()`, letting `apply_howard` run
+   `MinParametricSolver` with an **integer** `Domain` (`Coord`) while the ratio
+   stays rational, matching the Python reference whose `dist` is a plain int
+   dict (avoids Fraction gcd work in every relaxation step).
 3. Determinism: initial placement shuffles use `std::mt19937` with a fixed seed
    (not Python's `random`); tests assert legality/improvement, never bit-exact
    worst values.

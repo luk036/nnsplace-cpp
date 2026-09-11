@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -47,12 +48,14 @@ namespace nnsplace_detail {
         std::vector<Weight> v(n + 1, 0);
         std::vector<std::size_t> p(n + 1, 0);  // p[col] = matched row (0 = free)
         std::vector<std::size_t> way(n + 1, 0);
+        std::vector<Weight> minv(n + 1);
+        std::vector<char> used(n + 1);
 
         for (std::size_t i = 1; i <= m; ++i) {
             p[0] = i;
             std::size_t j0 = 0;
-            std::vector<Weight> minv(n + 1, kBig);
-            std::vector<char> used(n + 1, false);
+            std::fill(minv.begin(), minv.end(), kBig);
+            std::fill(used.begin(), used.end(), false);
             do {
                 used[j0] = true;
                 const auto i0 = p[j0];

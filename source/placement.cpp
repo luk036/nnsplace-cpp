@@ -138,15 +138,13 @@ void NnsPlacer::apply_howard(Placement& place, const int axis) {
     }
 
     const auto num_modules = static_cast<node_t>(hyprgraph.number_of_modules());
-    std::vector<Ratio> dist(num_modules);
-    for (node_t v = 0; v < num_modules; ++v) dist[v] = Ratio{place[axis][v]};
+    std::vector<Coord> dist(num_modules);
+    for (node_t v = 0; v < num_modules; ++v) dist[v] = place[axis][v];
 
     auto& cnt = count[axis];
     const auto grid = cfg.grid[axis];
     const auto line = limit[axis];
-    const auto update_ok = [&cnt, grid, line, this](const Ratio& from, const Ratio& to) {
-        const auto from_where = from.numerator();
-        const auto to_where = to.numerator();
+    const auto update_ok = [&cnt, grid, line](const Coord& from_where, const Coord& to_where) {
         if (to_where <= 0 || to_where > grid) return false;
         if (cnt[static_cast<std::size_t>(to_where)] >= line) return false;
         ++cnt[static_cast<std::size_t>(to_where)];
@@ -156,11 +154,14 @@ void NnsPlacer::apply_howard(Placement& place, const int axis) {
 
     HowardsCost omega{cfg, axis};
     MapAdapter<std::vector<std::vector<std::pair<uint32_t, int>>>> ga(_arcs);
-    MinParametricSolver<decltype(ga), Ratio, Ratio> solver{ga, omega};
+    // Integer distance domain (like the Python reference, whose `dist` is a
+    // plain int dict): only the ratio stays rational, so the per-edge
+    // relaxation arithmetic avoids Fraction gcd work.
+    MinParametricSolver<decltype(ga), Ratio, Coord> solver{ga, omega};
     auto result = solver.run(dist, Ratio{worst}, update_ok);
     (void)result;
     for (node_t v = 0; v < num_modules; ++v) {
-        place[axis][v] = dist[v].numerator();
+        place[axis][v] = dist[v];
     }
 }
 
@@ -286,6 +287,7 @@ void NnsPlacer::legalize(const std::vector<node_t>& lst, Placement& place, const
     // Primary strategy: grow a +/- radius window until an assignment exists.
     constexpr Coord kNeighborhood = 11;
     constexpr Coord kMaxNeighborhood = 50;
+    const auto grid = cfg.grid[axis];
     this->add_radius_edges(lst, candidates, data, axis, 1, kNeighborhood - 1);
     auto ring = kNeighborhood;
     while (ring < kMaxNeighborhood) {
@@ -294,6 +296,10 @@ void NnsPlacer::legalize(const std::vector<node_t>& lst, Placement& place, const
             this->apply_matches(lst, *matched, place, axis);
             return;
         }
+        // Once the window spans the whole line it can no longer gain a slot, so
+        // every further ring would repeat the same infeasible assignment; fall
+        // through to the global fallback instead.
+        if (ring >= grid) break;
         this->add_radius_edges(lst, candidates, data, axis, ring, ring);
         ++ring;
     }

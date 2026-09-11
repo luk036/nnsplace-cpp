@@ -4,6 +4,9 @@
 
 #include <nnsplace/matching.hpp>
 
+#include <absl/container/flat_hash_map.h>
+
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -24,12 +27,12 @@ namespace nnsplace_detail {
         }
         if (n < m) return false;
         std::vector<std::size_t> col_row(n, n);
-        const auto try_kuhn = [&](const auto& self, const std::size_t v,
-                                  std::vector<bool>& seen) -> bool {
+        std::vector<char> seen(n, 0);
+        const auto try_kuhn = [&](const auto& self, const std::size_t v) -> bool {
             for (const auto to : edges[v]) {
                 if (seen[to]) continue;
-                seen[to] = true;
-                if (col_row[to] == n || self(self, col_row[to], seen)) {
+                seen[to] = 1;
+                if (col_row[to] == n || self(self, col_row[to])) {
                     col_row[to] = v;
                     return true;
                 }
@@ -37,8 +40,8 @@ namespace nnsplace_detail {
             return false;
         };
         for (std::size_t v = 0; v < m; ++v) {
-            std::vector<bool> seen(n, false);
-            if (!try_kuhn(try_kuhn, v, seen)) return false;
+            std::fill(seen.begin(), seen.end(), 0);
+            if (!try_kuhn(try_kuhn, v)) return false;
         }
         return true;
     }
@@ -50,49 +53,43 @@ auto min_weight_full_matching(const std::vector<std::vector<CandidateEdge>>& can
     const auto m = candidates.size();
     if (m == 0) return std::vector<uint32_t>{};
 
-    // Collect the distinct slot-node ids and map them to dense columns.
+    // Collect the distinct slot-node ids and map them to dense columns,
+    // preserving first-seen order (the Hungarian tie-break depends on it).
     std::vector<uint32_t> columns;
+    absl::flat_hash_map<uint32_t, std::size_t> col_of;
     for (const auto& row : candidates) {
         for (const auto& [slot, weight] : row) {
             (void)weight;
-            bool found = false;
-            for (const auto c : columns) {
-                if (c == slot) {
-                    found = true;
-                    break;
-                }
+            if (col_of.emplace(slot, columns.size()).second) {
+                columns.push_back(slot);
             }
-            if (!found) columns.push_back(slot);
         }
     }
     const auto n = columns.size();
     if (n < m) return std::nullopt;
 
-    // Column id lookup.
-    const auto dense_col = [&columns](const uint32_t slot) -> std::size_t {
-        for (std::size_t i = 0; i < columns.size(); ++i) {
-            if (columns[i] == slot) return i;
-        }
-        return columns.size();
-    };
-
-    // Per-row dense weight rows: kBig marks a missing edge.
-    std::vector<std::vector<Weight>> dense(m, std::vector<Weight>(n, nnsplace_detail::kBig));
+    // Sparse rows + cheap feasibility test first: the dense matrix build is
+    // skipped whenever the instance is infeasible, which is the common case
+    // while the legalizer widens its window one ring at a time.
     std::vector<std::vector<std::size_t>> sparse(m);
     for (std::size_t r = 0; r < m; ++r) {
         for (const auto& [slot, weight] : candidates[r]) {
-            const auto c = dense_col(slot);
-            if (c != n) {
-                dense[r][c] = weight;
-                sparse[r].push_back(c);
-            }
+            (void)weight;
+            sparse[r].push_back(col_of.at(slot));
+        }
+    }
+    if (!nnsplace_detail::has_full_matching(sparse)) return std::nullopt;
+
+    // Flat row-major dense weights: kBig marks a missing edge.
+    std::vector<Weight> dense(m * n, nnsplace_detail::kBig);
+    for (std::size_t r = 0; r < m; ++r) {
+        for (const auto& [slot, weight] : candidates[r]) {
+            dense[r * n + col_of.at(slot)] = weight;
         }
     }
 
-    if (!nnsplace_detail::has_full_matching(sparse)) return std::nullopt;
-
-    const auto cost = [&dense](const std::size_t row, const std::size_t col) -> Weight {
-        return dense[row - 1][col - 1];
+    const auto cost = [&dense, n](const std::size_t row, const std::size_t col) -> Weight {
+        return dense[(row - 1) * n + (col - 1)];
     };
     const auto assigned = nnsplace_detail::hungarian(m, n, cost);
 
@@ -100,7 +97,7 @@ auto min_weight_full_matching(const std::vector<std::vector<CandidateEdge>>& can
     std::vector<uint32_t> result(m);
     for (std::size_t r = 0; r < m; ++r) {
         const auto c = assigned[r];
-        if (c >= n || dense[r][c] >= nnsplace_detail::kBigThreshold) return std::nullopt;
+        if (c >= n || dense[r * n + c] >= nnsplace_detail::kBigThreshold) return std::nullopt;
         result[r] = columns[c];
     }
     return result;
