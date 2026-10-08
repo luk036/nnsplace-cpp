@@ -62,7 +62,7 @@ auto main(int argc, char* argv[]) -> int {
     const auto max_iters = argc > 5 ? std::stoi(argv[5]) : 2000;
     const auto ratio = argc > 6 ? std::stod(argv[6]) : 0.0;
     const auto seed = argc > 7 ? std::stoul(argv[7]) : 831;
-    const auto outdir = argc > 8 ? argv[8] : ".";
+    const auto* const outdir = argc > 8 ? argv[8] : ".";
 
     const auto directed = read_directed_json_edges(file);
     const auto& netlist = directed.netlist;
