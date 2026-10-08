@@ -286,8 +286,8 @@ TEST_CASE("test_legalize_global_fallback") {
     placer.legalize(lst, place, 1);
     std::vector<Coord> rows(70);
     for (std::size_t v = 0; v < 70; ++v) rows[v] = place[1][v];
-    std::sort(rows.begin(), rows.end());
-    rows.erase(std::unique(rows.begin(), rows.end()), rows.end());
+    std::ranges::sort(rows);
+    rows.erase(std::ranges::unique(rows).begin(), rows.end());
     CHECK(rows.size() == 70);
 }
 

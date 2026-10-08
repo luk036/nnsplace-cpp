@@ -169,7 +169,7 @@ class NnsPlacer {
      *                    its sinks so the worst wire length is driver->sink
      */
     NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config,
-              std::vector<std::optional<node_t>> net_driver = {});
+              const std::vector<std::optional<node_t>>& net_driver = {});
 
     /** \brief cost(length, axis) = length * delta[axis] */
     auto cost(const Coord length, const int axis) const -> Coord {

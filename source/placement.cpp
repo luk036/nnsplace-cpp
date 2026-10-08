@@ -34,7 +34,7 @@ auto create_flow_graph(const SimpleNetlist& hyprgraph,
         std::vector<node_t> verts(members.begin(), members.end());
         if (directed) {
             const auto& driver = net_driver[net_index];
-            if (driver && std::find(verts.begin(), verts.end(), *driver) != verts.end()) {
+            if (driver && std::ranges::find(verts, *driver) != verts.end()) {
                 for (const auto sink : verts) {
                     if (sink == *driver) continue;
                     if (hyprgraph.get_module_weight(static_cast<uint32_t>(*driver)) == 0U
@@ -58,15 +58,15 @@ auto create_flow_graph(const SimpleNetlist& hyprgraph,
         ++net_index;
     }
     for (auto& lst : adj) {
-        std::sort(lst.begin(), lst.end());
-        lst.erase(std::unique(lst.begin(), lst.end()), lst.end());
+        std::ranges::sort(lst);
+        lst.erase(std::ranges::unique(lst).begin(), lst.end());
     }
     return FlowGraph{std::move(adj)};
 }
 
 NnsPlacer::NnsPlacer(const SimpleNetlist& netlist, const NnsConfig& config,
-                     std::vector<std::optional<node_t>> net_driver)
-    : hyprgraph(netlist), cfg(config), ugraph{create_flow_graph(netlist, std::move(net_driver))} {
+                     const std::vector<std::optional<node_t>>& net_driver)
+    : hyprgraph(netlist), cfg(config), ugraph{create_flow_graph(netlist, net_driver)} {
     const auto num_modules = static_cast<node_t>(hyprgraph.number_of_modules());
     const auto num_pads = static_cast<node_t>(hyprgraph.num_pads);
     count[0].assign(static_cast<std::size_t>(cfg.grid[0]) + 2, 0);
@@ -131,7 +131,7 @@ void NnsPlacer::apply_howard(Placement& place, const int axis) {
         for (auto& [v, arc_cost] : _arcs[u]) {
             const auto raw = std::abs(place[oppo][v] - place[oppo][u]);
             arc_cost = static_cast<int>(delta_op * raw);
-            if (worst < raw) worst = raw;
+            worst = std::max(worst, raw);
         }
     }
 
@@ -172,7 +172,8 @@ auto NnsPlacer::module_slot_data(const node_t v, const Placement& place, const i
         if (w != v) nbrs.push_back(w);
     }
     if (nbrs.empty()) {
-        return nnsplace_detail::ModuleSlotData{p0, {}, {}, {}, Coord{0}};
+        return nnsplace_detail::ModuleSlotData{
+            .p0 = p0, .as_ = {}, .pref = {}, .suff = {}, .w0 = Coord{0}};
     }
     const auto oppo = axis ^ 1;
     const auto o0 = place[oppo][v];
@@ -184,8 +185,7 @@ auto NnsPlacer::module_slot_data(const node_t v, const Placement& place, const i
     for (const auto w : nbrs) {
         pairs.emplace_back(place[axis][w], d_op * std::abs(o0 - place[oppo][w]));
     }
-    std::sort(pairs.begin(), pairs.end(),
-              [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::ranges::sort(pairs, [](const auto& a, const auto& b) { return a.first < b.first; });
 
     const auto m = pairs.size();
     std::vector<Coord> as_(m);
@@ -196,7 +196,7 @@ auto NnsPlacer::module_slot_data(const node_t v, const Placement& place, const i
     pref[1] = mx;
     for (std::size_t t = 2; t <= m; ++t) {
         const auto c = pairs[t - 1].second - d_ax * pairs[t - 1].first;
-        if (c > mx) mx = c;
+        mx = std::max(c, mx);
         pref[t] = mx;
     }
     std::vector<Coord> suff(m + 1, 0);
@@ -204,12 +204,15 @@ auto NnsPlacer::module_slot_data(const node_t v, const Placement& place, const i
     suff[m - 1] = mx;
     for (std::size_t t = m - 1; t-- > 0;) {
         const auto c = pairs[t].second + d_ax * pairs[t].first;
-        if (c > mx) mx = c;
+        mx = std::max(c, mx);
         suff[t] = mx;
     }
     const auto w0 = nnsplace_detail::worst_at(p0, as_, pref, suff, d_ax);
-    return nnsplace_detail::ModuleSlotData{p0, std::move(as_), std::move(pref), std::move(suff),
-                                           w0};
+    return nnsplace_detail::ModuleSlotData{.p0 = p0,
+                                           .as_ = std::move(as_),
+                                           .pref = std::move(pref),
+                                           .suff = std::move(suff),
+                                           .w0 = w0};
 }
 
 void NnsPlacer::add_radius_edges(const std::vector<node_t>& lst,
@@ -226,14 +229,14 @@ void NnsPlacer::add_radius_edges(const std::vector<node_t>& lst,
             const auto p0 = sd.p0;
             const auto q0 = p0 + nmod;
             auto q = p0 - ring;
-            if (q > 0 && !(reserved && q == reserved_col)) {
+            if (q > 0 && (!reserved || q != reserved_col)) {
                 const auto w1 = sd.as_.empty()
                                     ? Coord{0}
                                     : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff, d_ax);
                 candidates[k].emplace_back(static_cast<uint32_t>(q0 - ring), w1 - sd.w0);
             }
             q = p0 + ring;
-            if (q <= grid && !(reserved && q == reserved_col)) {
+            if (q <= grid && (!reserved || q != reserved_col)) {
                 const auto w1 = sd.as_.empty()
                                     ? Coord{0}
                                     : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff, d_ax);
@@ -305,7 +308,7 @@ void NnsPlacer::legalize(const std::vector<node_t>& lst, Placement& place, const
     for (std::size_t k = 0; k < m; ++k) {
         global[k] = candidates[k];
     }
-    std::vector<node_t> full_lst = lst;
+    const std::vector<node_t>& full_lst = lst;
     this->add_all_slots(full_lst, global, place, axis);
     auto matched = min_weight_full_matching(global);
     if (!matched) {
