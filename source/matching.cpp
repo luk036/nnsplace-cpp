@@ -39,7 +39,7 @@ namespace nnsplace_detail {
             return false;
         };
         for (std::size_t v = 0; v < m; ++v) {
-            std::fill(seen.begin(), seen.end(), 0);
+            std::ranges::fill(seen, 0);
             if (!try_kuhn(try_kuhn, v)) return false;
         }
         return true;

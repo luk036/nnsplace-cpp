@@ -26,7 +26,7 @@ namespace {
         placer.init_placement(place, 831);
         placer.io_assign(place);
         (void)placer.run(place, 2000);
-        return P1_32{netlist, std::move(place)};
+        return P1_32{.netlist = netlist, .place = std::move(place)};
     }
 
     auto cut_crossing_total(const RoutingAnalysis& routing) -> std::int64_t {

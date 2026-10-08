@@ -42,7 +42,7 @@ namespace {
     auto vertical_first(const Placement& place, const std::size_t src, int gx, int gy) -> bool {
         const auto px = static_cast<int>(place[0][src]);
         const auto py = static_cast<int>(place[1][src]);
-        return (py == 0 || py == gy + 1) && !(px == 0 || px == gx + 1);
+        return (py == 0 || py == gy + 1) && px != 0 && px != gx + 1;
     }
 
     void count_horizontal_run(std::vector<std::vector<std::int64_t>>& h, int row, int x1, int x2) {
@@ -79,23 +79,25 @@ namespace {
                 const auto y2 = child->pt.ycoord();
                 if (x1 == x2) {
                     count_vertical_run(v, x1, y1, y2);
-                    if (keep_runs) vsegs.push_back(RouteRun{x1, y1, x2, y2});
+                    if (keep_runs)
+                        vsegs.push_back(RouteRun{.x1 = x1, .y1 = y1, .x2 = x2, .y2 = y2});
                 } else if (y1 == y2) {
                     count_horizontal_run(h, y1, x1, x2);
-                    if (keep_runs) hsegs.push_back(RouteRun{x1, y1, x2, y2});
+                    if (keep_runs)
+                        hsegs.push_back(RouteRun{.x1 = x1, .y1 = y1, .x2 = x2, .y2 = y2});
                 } else if (vertical_first) {
                     count_vertical_run(v, x1, y1, y2);
                     count_horizontal_run(h, y2, x1, x2);
                     if (keep_runs) {
-                        vsegs.push_back(RouteRun{x1, y1, x1, y2});
-                        hsegs.push_back(RouteRun{x1, y2, x2, y2});
+                        vsegs.push_back(RouteRun{.x1 = x1, .y1 = y1, .x2 = x1, .y2 = y2});
+                        hsegs.push_back(RouteRun{.x1 = x1, .y1 = y2, .x2 = x2, .y2 = y2});
                     }
                 } else {
                     count_horizontal_run(h, y1, x1, x2);
                     count_vertical_run(v, x2, y1, y2);
                     if (keep_runs) {
-                        hsegs.push_back(RouteRun{x1, y1, x2, y1});
-                        vsegs.push_back(RouteRun{x2, y1, x2, y2});
+                        hsegs.push_back(RouteRun{.x1 = x1, .y1 = y1, .x2 = x2, .y2 = y1});
+                        vsegs.push_back(RouteRun{.x1 = x2, .y1 = y1, .x2 = x2, .y2 = y2});
                     }
                 }
                 stack.push_back(child);
@@ -127,9 +129,9 @@ auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx
             if (net_index < net_driver.size()) driver = net_driver[net_index];
         }
 
-        std::size_t source;
-        bool draw_run;
-        if (driver && std::find(verts.begin(), verts.end(), *driver) != verts.end()) {
+        std::size_t source = 0;
+        bool draw_run = false;
+        if (driver && std::ranges::find(verts, *driver) != verts.end()) {
             source = *driver;
             draw_run = is_pad(netlist, source);
         } else {
@@ -188,7 +190,7 @@ auto build_congestion_maps(const RoutingAnalysis& routing, int gx, int gy) -> Co
             maps.combined[static_cast<std::size_t>(y - 1)].push_back(std::max(xval, yval));
             maps.peak_x = std::max(maps.peak_x, xval);
             maps.peak_y = std::max(maps.peak_y, yval);
-            maps.peak_combined = std::max(maps.peak_combined, std::max(xval, yval));
+            maps.peak_combined = std::max({maps.peak_combined, xval, yval});
         }
     }
     return maps;
@@ -237,21 +239,21 @@ auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& pl
     svg << "    circle.iopad { fill: #ec0000; }\n";
     svg << "    line { stroke: #00a200; stroke-width: 4; stroke-opacity: 0.4; }\n";
     svg << "  </style>\n";
-    svg << "  <pattern id=\"pattern-circles\" x=\"0\" y=\"0\" width=\"" << pixel << "\" height=\""
+    svg << R"(  <pattern id="pattern-circles" x="0" y="0" width=")" << pixel << "\" height=\""
         << pixel << "\" patternUnits=\"userSpaceOnUse\">\n";
     svg << "    <circle class=\"cell\" opacity=\"0.2\" cx=\"20\" cy=\"20\" r=\"15\"/>\n";
     svg << "  </pattern>\n";
-    svg << "  <pattern id=\"pattern-io\" x=\"0\" y=\"0\" width=\"" << pixel << "\" height=\""
-        << pixel << "\" patternUnits=\"userSpaceOnUse\">\n";
+    svg << R"(  <pattern id="pattern-io" x="0" y="0" width=")" << pixel << "\" height=\"" << pixel
+        << "\" patternUnits=\"userSpaceOnUse\">\n";
     svg << "    <circle class=\"iopad\" opacity=\"0.2\" cx=\"20\" cy=\"20\" r=\"15\"/>\n";
     svg << "  </pattern>\n";
     svg << "  <rect x=\"" << pixel << "\" y=\"" << pixel << "\" width=\"" << iw << "\" height=\""
         << ih << "\" fill=\"url(#pattern-circles)\"/>\n";
-    svg << "  <rect x=\"" << pixel << "\" y=\"0\" width=\"" << iw << "\" height=\"" << pixel
+    svg << "  <rect x=\"" << pixel << R"(" y="0" width=")" << iw << "\" height=\"" << pixel
         << "\" fill=\"url(#pattern-io)\"/>\n";
     svg << "  <rect x=\"" << pixel << "\" y=\"" << oy << "\" width=\"" << iw << "\" height=\""
         << pixel << "\" fill=\"url(#pattern-io)\"/>\n";
-    svg << "  <rect x=\"0\" y=\"" << pixel << "\" width=\"" << pixel << "\" height=\"" << ih
+    svg << R"(  <rect x="0" y=")" << pixel << "\" width=\"" << pixel << "\" height=\"" << ih
         << "\" fill=\"url(#pattern-io)\"/>\n";
     svg << "  <rect x=\"" << ox << "\" y=\"" << pixel << "\" width=\"" << pixel << "\" height=\""
         << ih << "\" fill=\"url(#pattern-io)\"/>\n";
@@ -356,12 +358,12 @@ auto make_congestion_map_svg(const std::string& title, const std::vector<std::ve
     svg << "<stop offset=\"100%\" style=\"stop-color:#ff0000\"/>\n";
     svg << "</linearGradient>\n";
     svg << "</defs>\n";
-    svg << "<rect x=\"" << legend_x << "\" y=\"" << legend_y << "\" width=\"30\" height=\""
+    svg << "<rect x=\"" << legend_x << "\" y=\"" << legend_y << R"(" width="30" height=")"
         << bar_height << "\" fill=\"url(#grad)\"/>\n";
     for (int label = 0; label <= 100; label += 25) {
         const auto ly = legend_y + bar_height - static_cast<int>(label / 100.0 * bar_height);
         svg << "<text x=\"" << legend_x + 38 << "\" y=\"" << ly + 5
-            << "\" font-size=\"12\" font-family=\"Arial\">" << label << "</text>\n";
+            << R"(" font-size="12" font-family="Arial">)" << label << "</text>\n";
         svg << "<line x1=\"" << legend_x - 5 << "\" y1=\"" << ly << "\" x2=\"" << legend_x
             << "\" y2=\"" << ly << "\" stroke=\"black\" stroke-width=\"1\"/>\n";
     }

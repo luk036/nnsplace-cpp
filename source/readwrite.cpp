@@ -54,5 +54,5 @@ auto read_directed_json_edges(const std::string& filename) -> DirectedNetlist {
             net_driver[net_index] = node["driver"].get<std::size_t>();
         }
     }
-    return DirectedNetlist{std::move(netlist), std::move(net_driver)};
+    return DirectedNetlist{.netlist = std::move(netlist), .net_driver = std::move(net_driver)};
 }
