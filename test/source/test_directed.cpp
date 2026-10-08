@@ -1,10 +1,9 @@
 // -*- coding: utf-8 -*-
 #include <doctest/doctest.h>
 
+#include <cstddef>
 #include <nnsplace/placement.hpp>
 #include <nnsplace/readwrite.hpp>
-
-#include <cstddef>
 #include <optional>
 #include <vector>
 

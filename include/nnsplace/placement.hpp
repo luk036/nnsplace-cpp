@@ -19,19 +19,18 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <digraphx/min_parametric_q.hpp>
+#include <fractions/pyfractions.hpp>
 #include <limits>
+#include <mywheel/map_adapter.hpp>
+#include <netlistx/netlist.hpp>
 #include <numeric>
 #include <optional>
 #include <random>
+#include <recti/interval.hpp>
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-#include <digraphx/min_parametric_q.hpp>
-#include <fractions/pyfractions.hpp>
-#include <mywheel/map_adapter.hpp>
-#include <netlistx/netlist.hpp>
-#include <recti/interval.hpp>
 #include <xnetwork/classes/graph.hpp>
 
 #include "matching.hpp"
@@ -80,8 +79,7 @@ inline auto has_directed_edge(const FlowGraph& fg, const node_t u, const node_t 
  *  driver is unknown fall back to the all-pairs clique.
  */
 auto create_flow_graph(const SimpleNetlist& hyprgraph,
-                       const std::vector<std::optional<node_t>>& net_driver = {})
-    -> FlowGraph;
+                       const std::vector<std::optional<node_t>>& net_driver = {}) -> FlowGraph;
 
 namespace nnsplace_detail {
 
@@ -105,8 +103,8 @@ namespace nnsplace_detail {
                          const std::vector<Coord>& pref, const std::vector<Coord>& suff,
                          const Coord d_ax) -> Coord {
         const auto m = as_.size();
-        const auto t = static_cast<std::size_t>(
-            std::upper_bound(as_.begin(), as_.end(), q) - as_.begin());
+        const auto t
+            = static_cast<std::size_t>(std::upper_bound(as_.begin(), as_.end(), q) - as_.begin());
         auto best = Coord{0};
         if (t > 0) best = d_ax * q + pref[t];
         if (t < m) {
@@ -174,7 +172,9 @@ class NnsPlacer {
               std::vector<std::optional<node_t>> net_driver = {});
 
     /** \brief cost(length, axis) = length * delta[axis] */
-    auto cost(const Coord length, const int axis) const -> Coord { return length * cfg.delta[axis]; }
+    auto cost(const Coord length, const int axis) const -> Coord {
+        return length * cfg.delta[axis];
+    }
 
     /** \brief Inverse of cost(): the length a cost corresponds to. */
     auto cost_inv(const Coord c, const int axis) const -> Ratio {
@@ -239,8 +239,8 @@ class NnsPlacer {
     /** \brief Add module->slot candidate edges for window radii [r_start, r_stop]. */
     void add_radius_edges(const std::vector<node_t>& lst,
                           std::vector<std::vector<CandidateEdge>>& candidates,
-                          const std::vector<nnsplace_detail::ModuleSlotData>& data,
-                          const int axis, const Coord r_start, const Coord r_stop);
+                          const std::vector<nnsplace_detail::ModuleSlotData>& data, const int axis,
+                          const Coord r_start, const Coord r_stop);
 
     /** \brief Connect every module to every free slot (global fallback). */
     void add_all_slots(const std::vector<node_t>& lst,
@@ -300,8 +300,8 @@ class NnsPlacer {
     std::vector<std::vector<std::pair<uint32_t, int>>> _arcs;
 
     /** \brief Move modules to their matched slot coordinates and fix counts. */
-    void apply_matches(const std::vector<node_t>& lst,
-                       const std::vector<uint32_t>& slot_of, Placement& place, const int axis) {
+    void apply_matches(const std::vector<node_t>& lst, const std::vector<uint32_t>& slot_of,
+                       Placement& place, const int axis) {
         const auto nmod = static_cast<Coord>(hyprgraph.number_of_modules());
         auto& dist = place[axis];
         for (std::size_t k = 0; k < lst.size(); ++k) {

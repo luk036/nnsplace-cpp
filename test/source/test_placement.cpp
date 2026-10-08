@@ -1,13 +1,12 @@
 // -*- coding: utf-8 -*-
 #include <doctest/doctest.h>
 
-#include <nnsplace/placement.hpp>
-#include <nnsplace/placement_cfg.hpp>
-#include <nnsplace/readwrite.hpp>
-
 #include <algorithm>
 #include <cstdint>
 #include <fractions/pyfractions.hpp>
+#include <nnsplace/placement.hpp>
+#include <nnsplace/placement_cfg.hpp>
+#include <nnsplace/readwrite.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,10 +40,9 @@ namespace {
     /// drawf/fix circuit: cells 0..3, pads 4..6, nets 7..12 (see fix.json).
     auto build_drawf_netlist() -> SimpleNetlist {
         xnetwork::SimpleGraph g(13);
-        std::vector<std::pair<uint32_t, uint32_t>> edges{{0, 7},  {0, 8},  {1, 7},  {1, 9},
-                                                         {2, 8},  {2, 9},  {2, 10}, {3, 8},
-                                                         {3, 9},  {3, 11}, {4, 7},  {5, 10},
-                                                         {5, 12}, {6, 11}};
+        std::vector<std::pair<uint32_t, uint32_t>> edges{{0, 7}, {0, 8},  {1, 7},  {1, 9}, {2, 8},
+                                                         {2, 9}, {2, 10}, {3, 8},  {3, 9}, {3, 11},
+                                                         {4, 7}, {5, 10}, {5, 12}, {6, 11}};
         for (const auto& [u, v] : edges) g.add_edge(u, v);
         SimpleNetlist netlist{std::move(g), 7U, 6U};
         netlist.num_pads = 3;
@@ -110,33 +108,27 @@ namespace {
 }  // namespace
 
 TEST_CASE("test_config_grid_width_too_small") {
-    expect_invalid_argument("Grid width must be at least 3",
-                            [] { NnsConfig{2, 5, 1, 1}; });
+    expect_invalid_argument("Grid width must be at least 3", [] { NnsConfig{2, 5, 1, 1}; });
 }
 
 TEST_CASE("test_config_grid_height_too_small") {
-    expect_invalid_argument("Grid height must be at least 3",
-                            [] { NnsConfig{5, 2, 1, 1}; });
+    expect_invalid_argument("Grid height must be at least 3", [] { NnsConfig{5, 2, 1, 1}; });
 }
 
 TEST_CASE("test_config_delta_x_non_positive") {
-    expect_invalid_argument("delta_x must be positive",
-                            [] { NnsConfig{5, 5, 0, 1}; });
+    expect_invalid_argument("delta_x must be positive", [] { NnsConfig{5, 5, 0, 1}; });
 }
 
 TEST_CASE("test_config_delta_y_non_positive") {
-    expect_invalid_argument("delta_y must be positive",
-                            [] { NnsConfig{5, 5, 1, 0}; });
+    expect_invalid_argument("delta_y must be positive", [] { NnsConfig{5, 5, 1, 0}; });
 }
 
 TEST_CASE("test_config_reserved_col_too_low") {
-    expect_invalid_argument("reserved_col must be between 1 and",
-                            [] { NnsConfig{5, 5, 1, 1, 0}; });
+    expect_invalid_argument("reserved_col must be between 1 and", [] { NnsConfig{5, 5, 1, 1, 0}; });
 }
 
 TEST_CASE("test_config_reserved_col_too_high") {
-    expect_invalid_argument("reserved_col must be between 1 and",
-                            [] { NnsConfig{5, 5, 1, 1, 6}; });
+    expect_invalid_argument("reserved_col must be between 1 and", [] { NnsConfig{5, 5, 1, 1, 6}; });
 }
 
 TEST_CASE("test_config_properties") {
@@ -172,10 +164,9 @@ TEST_CASE("test_config_line_cap_ratio_non_positive") {
 TEST_CASE("test_create_flow_graph_edge_set") {
     const auto netlist = build_mock_netlist();
     const auto fg = create_flow_graph(netlist);
-    const std::vector<std::pair<node_t, node_t>> expected{{0, 0}, {0, 1}, {0, 2}, {1, 0},
-                                                          {1, 1}, {1, 2}, {2, 0}, {2, 1},
-                                                          {2, 2}, {2, 3}, {2, 4}, {3, 2},
-                                                          {3, 3}, {3, 4}, {4, 2}, {4, 3}};
+    const std::vector<std::pair<node_t, node_t>> expected{
+        {0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 1}, {1, 2}, {2, 0}, {2, 1},
+        {2, 2}, {2, 3}, {2, 4}, {3, 2}, {3, 3}, {3, 4}, {4, 2}, {4, 3}};
     std::size_t count = 0;
     for (const auto& [u, v] : expected) {
         CHECK(has_directed_edge(fg, u, v));

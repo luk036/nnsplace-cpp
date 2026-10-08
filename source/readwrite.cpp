@@ -2,12 +2,11 @@
  *  \brief Node-link ("edges") JSON netlist readers (undirected + directed).
  */
 
-#include <nnsplace/readwrite.hpp>
-
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <nnsplace/readwrite.hpp>
 #include <string>
 #include <vector>
 

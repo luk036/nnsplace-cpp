@@ -3,13 +3,12 @@
  */
 
 #include <nnsplace/placement_cfg.hpp>
-
 #include <optional>
 #include <stdexcept>
 #include <string>
 
-NnsConfig::NnsConfig(const int64_t x, const int64_t y, const int64_t delta_x,
-                     const int64_t delta_y, const std::optional<int64_t> reserved_col_index,
+NnsConfig::NnsConfig(const int64_t x, const int64_t y, const int64_t delta_x, const int64_t delta_y,
+                     const std::optional<int64_t> reserved_col_index,
                      const std::optional<double> cap_ratio)
     : grid{x, y},
       delta{delta_x, delta_y},

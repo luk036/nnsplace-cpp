@@ -8,20 +8,18 @@
  *  heat maps as SVG documents.
  */
 
-#include <nnsplace/global_routing.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iomanip>
-#include <sstream>
-#include <string>
-#include <vector>
-
+#include <nnsplace/global_routing.hpp>
 #include <recti/global_router.hpp>
 #include <recti/logger.hpp>
 #include <recti/point.hpp>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #ifndef NNSPLACE_HAVE_RECTI_LOGGER
 // The physdes global router logs through this hook; nnsplace intentionally
@@ -29,83 +27,81 @@
 // implementation of the sibling library when it is not linked (the xmake
 // build compiles only global_router.cpp).
 namespace recti {
-void log_with_spdlog(const std::string& message) {
-    (void)message;
-}
+    void log_with_spdlog(const std::string& message) { (void)message; }
 }  // namespace recti
 #endif
 
 namespace {
-using IntPoint = recti::Point<int, int>;
-using Tree = recti::GlobalRoutingTree<IntPoint>;
+    using IntPoint = recti::Point<int, int>;
+    using Tree = recti::GlobalRoutingTree<IntPoint>;
 
-auto is_pad(const SimpleNetlist& netlist, const std::size_t m) -> bool {
-    return m >= netlist.number_of_modules() - netlist.num_pads;
-}
-
-auto vertical_first(const Placement& place, const std::size_t src, int gx, int gy) -> bool {
-    const auto px = static_cast<int>(place[0][src]);
-    const auto py = static_cast<int>(place[1][src]);
-    return (py == 0 || py == gy + 1) && !(px == 0 || px == gx + 1);
-}
-
-void count_horizontal_run(std::vector<std::vector<std::int64_t>>& h, int row, int x1, int x2) {
-    const auto c1 = static_cast<std::size_t>(std::min(x1, x2));
-    const auto c2 = static_cast<std::size_t>(std::max(x1, x2));
-    auto& line = h[static_cast<std::size_t>(row)];
-    for (auto c = c1; c < c2; ++c) {
-        ++line[c];
+    auto is_pad(const SimpleNetlist& netlist, const std::size_t m) -> bool {
+        return m >= netlist.number_of_modules() - netlist.num_pads;
     }
-}
 
-void count_vertical_run(std::vector<std::vector<std::int64_t>>& v, int col, int y1, int y2) {
-    const auto r1 = static_cast<std::size_t>(std::min(y1, y2));
-    const auto r2 = static_cast<std::size_t>(std::max(y1, y2));
-    auto& line = v[static_cast<std::size_t>(col)];
-    for (auto r = r1; r < r2; ++r) {
-        ++line[r];
+    auto vertical_first(const Placement& place, const std::size_t src, int gx, int gy) -> bool {
+        const auto px = static_cast<int>(place[0][src]);
+        const auto py = static_cast<int>(place[1][src]);
+        return (py == 0 || py == gy + 1) && !(px == 0 || px == gx + 1);
     }
-}
 
-void add_tree_runs(const Tree& tree, bool vertical_first, bool keep_runs,
-                   std::vector<RouteRun>& hsegs, std::vector<RouteRun>& vsegs,
-                   std::vector<std::vector<std::int64_t>>& h,
-                   std::vector<std::vector<std::int64_t>>& v) {
-    const auto* source = tree.get_source();
-    std::vector<const recti::RoutingNode<IntPoint>*> stack{source};
-    while (!stack.empty()) {
-        const auto* node = stack.back();
-        stack.pop_back();
-        for (const auto* child : node->children) {
-            const auto x1 = node->pt.xcoord();
-            const auto y1 = node->pt.ycoord();
-            const auto x2 = child->pt.xcoord();
-            const auto y2 = child->pt.ycoord();
-            if (x1 == x2) {
-                count_vertical_run(v, x1, y1, y2);
-                if (keep_runs) vsegs.push_back(RouteRun{x1, y1, x2, y2});
-            } else if (y1 == y2) {
-                count_horizontal_run(h, y1, x1, x2);
-                if (keep_runs) hsegs.push_back(RouteRun{x1, y1, x2, y2});
-            } else if (vertical_first) {
-                count_vertical_run(v, x1, y1, y2);
-                count_horizontal_run(h, y2, x1, x2);
-                if (keep_runs) {
-                    vsegs.push_back(RouteRun{x1, y1, x1, y2});
-                    hsegs.push_back(RouteRun{x1, y2, x2, y2});
-                }
-            } else {
-                count_horizontal_run(h, y1, x1, x2);
-                count_vertical_run(v, x2, y1, y2);
-                if (keep_runs) {
-                    hsegs.push_back(RouteRun{x1, y1, x2, y1});
-                    vsegs.push_back(RouteRun{x2, y1, x2, y2});
-                }
-            }
-            stack.push_back(child);
+    void count_horizontal_run(std::vector<std::vector<std::int64_t>>& h, int row, int x1, int x2) {
+        const auto c1 = static_cast<std::size_t>(std::min(x1, x2));
+        const auto c2 = static_cast<std::size_t>(std::max(x1, x2));
+        auto& line = h[static_cast<std::size_t>(row)];
+        for (auto c = c1; c < c2; ++c) {
+            ++line[c];
         }
     }
-}
+
+    void count_vertical_run(std::vector<std::vector<std::int64_t>>& v, int col, int y1, int y2) {
+        const auto r1 = static_cast<std::size_t>(std::min(y1, y2));
+        const auto r2 = static_cast<std::size_t>(std::max(y1, y2));
+        auto& line = v[static_cast<std::size_t>(col)];
+        for (auto r = r1; r < r2; ++r) {
+            ++line[r];
+        }
+    }
+
+    void add_tree_runs(const Tree& tree, bool vertical_first, bool keep_runs,
+                       std::vector<RouteRun>& hsegs, std::vector<RouteRun>& vsegs,
+                       std::vector<std::vector<std::int64_t>>& h,
+                       std::vector<std::vector<std::int64_t>>& v) {
+        const auto* source = tree.get_source();
+        std::vector<const recti::RoutingNode<IntPoint>*> stack{source};
+        while (!stack.empty()) {
+            const auto* node = stack.back();
+            stack.pop_back();
+            for (const auto* child : node->children) {
+                const auto x1 = node->pt.xcoord();
+                const auto y1 = node->pt.ycoord();
+                const auto x2 = child->pt.xcoord();
+                const auto y2 = child->pt.ycoord();
+                if (x1 == x2) {
+                    count_vertical_run(v, x1, y1, y2);
+                    if (keep_runs) vsegs.push_back(RouteRun{x1, y1, x2, y2});
+                } else if (y1 == y2) {
+                    count_horizontal_run(h, y1, x1, x2);
+                    if (keep_runs) hsegs.push_back(RouteRun{x1, y1, x2, y2});
+                } else if (vertical_first) {
+                    count_vertical_run(v, x1, y1, y2);
+                    count_horizontal_run(h, y2, x1, x2);
+                    if (keep_runs) {
+                        vsegs.push_back(RouteRun{x1, y1, x1, y2});
+                        hsegs.push_back(RouteRun{x1, y2, x2, y2});
+                    }
+                } else {
+                    count_horizontal_run(h, y1, x1, x2);
+                    count_vertical_run(v, x2, y1, y2);
+                    if (keep_runs) {
+                        hsegs.push_back(RouteRun{x1, y1, x2, y1});
+                        vsegs.push_back(RouteRun{x2, y1, x2, y2});
+                    }
+                }
+                stack.push_back(child);
+            }
+        }
+    }
 
 }  // namespace
 
@@ -155,8 +151,7 @@ auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx
         terminals.reserve(verts.size() - 1);
         for (const auto m : verts) {
             if (m == source) continue;
-            terminals.emplace_back(static_cast<int>(place[0][m]),
-                                   static_cast<int>(place[1][m]));
+            terminals.emplace_back(static_cast<int>(place[0][m]), static_cast<int>(place[1][m]));
         }
 
         recti::GlobalRouter<IntPoint> router{IntPoint{src_x, src_y}, std::move(terminals)};
@@ -168,8 +163,8 @@ auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx
         const auto& tree = router.get_tree();
         analysis.total_wirelength += tree.calculate_total_wirelength();
 
-        add_tree_runs(tree, vertical_first(place, source, gx, gy), draw_run,
-                      analysis.hsegments, analysis.vsegments, analysis.h, analysis.v);
+        add_tree_runs(tree, vertical_first(place, source, gx, gy), draw_run, analysis.hsegments,
+                      analysis.vsegments, analysis.h, analysis.v);
     }
     return analysis;
 }
@@ -224,8 +219,8 @@ auto congestion_percent(const std::vector<std::vector<std::int64_t>>& raw)
     return percent;
 }
 
-auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& place, int gx,
-                               int gy, const RoutingAnalysis& routing, int pixel) -> std::string {
+auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
+                               const RoutingAnalysis& routing, int pixel) -> std::string {
     const auto n = netlist.number_of_modules();
     const auto num_cells = n - netlist.num_pads;
     const auto w = (gx + 2) * pixel;
@@ -242,8 +237,8 @@ auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& pl
     svg << "    circle.iopad { fill: #ec0000; }\n";
     svg << "    line { stroke: #00a200; stroke-width: 4; stroke-opacity: 0.4; }\n";
     svg << "  </style>\n";
-    svg << "  <pattern id=\"pattern-circles\" x=\"0\" y=\"0\" width=\"" << pixel
-        << "\" height=\"" << pixel << "\" patternUnits=\"userSpaceOnUse\">\n";
+    svg << "  <pattern id=\"pattern-circles\" x=\"0\" y=\"0\" width=\"" << pixel << "\" height=\""
+        << pixel << "\" patternUnits=\"userSpaceOnUse\">\n";
     svg << "    <circle class=\"cell\" opacity=\"0.2\" cx=\"20\" cy=\"20\" r=\"15\"/>\n";
     svg << "  </pattern>\n";
     svg << "  <pattern id=\"pattern-io\" x=\"0\" y=\"0\" width=\"" << pixel << "\" height=\""
@@ -276,13 +271,13 @@ auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& pl
 
     for (const auto& run : routing.hsegments) {
         svg << "  <line x1=\"" << run.x1 * pixel + pixel / 2 << "\" y1=\""
-            << run.y1 * pixel + pixel / 2 << "\" x2=\"" << run.x2 * pixel + pixel / 2
-            << "\" y2=\"" << run.y2 * pixel + pixel / 2 << "\"/>\n";
+            << run.y1 * pixel + pixel / 2 << "\" x2=\"" << run.x2 * pixel + pixel / 2 << "\" y2=\""
+            << run.y2 * pixel + pixel / 2 << "\"/>\n";
     }
     for (const auto& run : routing.vsegments) {
         svg << "  <line x1=\"" << run.x1 * pixel + pixel / 2 << "\" y1=\""
-            << run.y1 * pixel + pixel / 2 << "\" x2=\"" << run.x2 * pixel + pixel / 2
-            << "\" y2=\"" << run.y2 * pixel + pixel / 2 << "\"/>\n";
+            << run.y1 * pixel + pixel / 2 << "\" x2=\"" << run.x2 * pixel + pixel / 2 << "\" y2=\""
+            << run.y2 * pixel + pixel / 2 << "\"/>\n";
     }
     svg << "</svg>\n";
     return svg.str();
@@ -290,25 +285,24 @@ auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& pl
 
 namespace {
 
-auto congestion_hex(const int value) -> std::string {
-    unsigned rgb = 0;
-    if (value <= 50) {
-        const auto red = static_cast<unsigned>(255.0 * value / 50);
-        rgb = (red << 16) | 0xFF00;
-    } else {
-        const auto green = static_cast<unsigned>(255.0 * (100 - value) / 50);
-        rgb = 0xFF0000 | (green << 8);
+    auto congestion_hex(const int value) -> std::string {
+        unsigned rgb = 0;
+        if (value <= 50) {
+            const auto red = static_cast<unsigned>(255.0 * value / 50);
+            rgb = (red << 16) | 0xFF00;
+        } else {
+            const auto green = static_cast<unsigned>(255.0 * (100 - value) / 50);
+            rgb = 0xFF0000 | (green << 8);
+        }
+        std::ostringstream os;
+        os << std::hex << std::nouppercase << std::setw(6) << std::setfill('0') << rgb;
+        return os.str();
     }
-    std::ostringstream os;
-    os << std::hex << std::nouppercase << std::setw(6) << std::setfill('0') << rgb;
-    return os.str();
-}
 
 }  // namespace
 
-auto make_congestion_map_svg(const std::string& title,
-                             const std::vector<std::vector<int>>& percent, std::int64_t peak)
-    -> std::string {
+auto make_congestion_map_svg(const std::string& title, const std::vector<std::vector<int>>& percent,
+                             std::int64_t peak) -> std::string {
     const auto rows = percent.size();
     const auto cols = rows == 0 ? 0 : percent.front().size();
     const auto gy = static_cast<int>(rows);
@@ -325,10 +319,12 @@ auto make_congestion_map_svg(const std::string& title,
     svg << "<svg width=\"" << width << "\" height=\"" << height
         << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     svg << "<rect width=\"" << width << "\" height=\"" << height << "\" fill=\"#ffffff\"/>\n";
-    svg << "<text x=\"" << padding << "\" y=\"34\" font-size=\"22\" "
+    svg << "<text x=\"" << padding
+        << "\" y=\"34\" font-size=\"22\" "
            "font-family=\"Arial\">"
         << title << "</text>\n";
-    svg << "<text x=\"" << padding << "\" y=\"56\" font-size=\"14\" fill=\"#555555\" "
+    svg << "<text x=\"" << padding
+        << "\" y=\"56\" font-size=\"14\" fill=\"#555555\" "
            "font-family=\"Arial\">busiest cut: "
         << peak << " wires</text>\n";
     for (std::size_t r = 0; r < rows; ++r) {

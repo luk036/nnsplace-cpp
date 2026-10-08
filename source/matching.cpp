@@ -2,13 +2,12 @@
  *  \brief Rectangular minimum-weight full (assignment) matching definitions.
  */
 
-#include <nnsplace/matching.hpp>
-
 #include <absl/container/flat_hash_map.h>
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <nnsplace/matching.hpp>
 #include <optional>
 #include <utility>
 #include <vector>

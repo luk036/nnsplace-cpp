@@ -243,8 +243,7 @@ namespace fractions {
 
             if (g == 1) {
                 // Check for overflow before multiplication
-                if (std::abs(na) > _max_div(db)
-                    || std::abs(da) > _max_div(nb)) {
+                if (std::abs(na) > _max_div(db) || std::abs(da) > _max_div(nb)) {
                     // Use floating point as fallback
                     double result = static_cast<double>(na) / static_cast<double>(da)
                                     + static_cast<double>(nb) / static_cast<double>(db);
@@ -264,8 +263,7 @@ namespace fractions {
             T db_div_g = db / g;
 
             // Check for overflow in t calculation
-            if (std::abs(na) > _max_div(db_div_g)
-                || std::abs(nb) > _max_div(s)) {
+            if (std::abs(na) > _max_div(db_div_g) || std::abs(nb) > _max_div(s)) {
                 // Use floating point as fallback
                 double result = static_cast<double>(na) / static_cast<double>(da)
                                 + static_cast<double>(nb) / static_cast<double>(db);
@@ -325,8 +323,7 @@ namespace fractions {
 
             if (g == 1) {
                 // Check for overflow before multiplication
-                if (std::abs(na) > _max_div(db)
-                    || std::abs(da) > _max_div(nb)) {
+                if (std::abs(na) > _max_div(db) || std::abs(da) > _max_div(nb)) {
                     // Use floating point as fallback
                     double result = static_cast<double>(na) / static_cast<double>(da)
                                     - static_cast<double>(nb) / static_cast<double>(db);
@@ -346,8 +343,7 @@ namespace fractions {
             T db_div_g = db / g;
 
             // Check for overflow in t calculation
-            if (std::abs(na) > _max_div(db_div_g)
-                || std::abs(nb) > _max_div(s)) {
+            if (std::abs(na) > _max_div(db_div_g) || std::abs(nb) > _max_div(s)) {
                 // Use floating point as fallback
                 double result = static_cast<double>(na) / static_cast<double>(da)
                                 - static_cast<double>(nb) / static_cast<double>(db);
@@ -421,8 +417,7 @@ namespace fractions {
             }
 
             // Check for overflow before final multiplication
-            if (std::abs(na) > _max_div(nb)
-                || std::abs(db) > _max_div(da)) {
+            if (std::abs(na) > _max_div(nb) || std::abs(db) > _max_div(da)) {
                 // Use floating point as fallback
                 double result = (static_cast<double>(na) * static_cast<double>(nb))
                                 / (static_cast<double>(db) * static_cast<double>(da));
@@ -467,8 +462,7 @@ namespace fractions {
             }
 
             // Check for overflow before multiplication
-            if (std::abs(na) > _max_div(db)
-                || std::abs(nb) > _max_div(da)) {
+            if (std::abs(na) > _max_div(db) || std::abs(nb) > _max_div(da)) {
                 // Use floating point as fallback
                 double result = (static_cast<double>(na) * static_cast<double>(db))
                                 / (static_cast<double>(nb) * static_cast<double>(da));
@@ -675,8 +669,7 @@ namespace fractions {
             // To avoid overflow, we can use floating point division for large numbers
             // or carefully check for overflow before multiplication
             if (std::abs(_numerator) > _max_div(other._denominator)
-                || std::abs(_denominator)
-                       > _max_div(other._numerator)) {
+                || std::abs(_denominator) > _max_div(other._numerator)) {
                 // Use floating point to avoid overflow
                 double result
                     = static_cast<double>(_numerator) * static_cast<double>(other._denominator)
@@ -716,8 +709,7 @@ namespace fractions {
 
             // Check for potential overflow in multiplications
             bool overflow_risk
-                = (std::abs(_numerator) > _max_div(db)
-                   || std::abs(other._numerator) > _max_div(da)
+                = (std::abs(_numerator) > _max_div(db) || std::abs(other._numerator) > _max_div(da)
                    || std::abs(da) > _max_div(db));
 
             if (overflow_risk) {

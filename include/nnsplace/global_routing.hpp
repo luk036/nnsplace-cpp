@@ -20,12 +20,11 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
-#include <vector>
-
 #include <netlistx/netlist.hpp>
 #include <recti/global_router.hpp>
 #include <recti/point.hpp>
+#include <string>
+#include <vector>
 
 #include "placement.hpp"
 
@@ -79,8 +78,7 @@ struct RoutingAnalysis {
  *  \return the routing analysis of the netlist
  */
 auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
-                    const std::vector<std::optional<node_t>>& net_driver = {})
-    -> RoutingAnalysis;
+                    const std::vector<std::optional<node_t>>& net_driver = {}) -> RoutingAnalysis;
 
 /** \brief Raw per-cell congestion counts derived from a routing analysis.
  *
@@ -91,12 +89,12 @@ auto route_all_nets(const SimpleNetlist& netlist, const Placement& place, int gx
  *  map is the element-wise maximum of the two direction maps.
  */
 struct CongestionMaps {
-    std::vector<std::vector<std::int64_t>> x;  ///< rows y = 1..gy, cols x = 1..gx
-    std::vector<std::vector<std::int64_t>> y;  ///< rows y = 1..gy, cols x = 1..gx
+    std::vector<std::vector<std::int64_t>> x;         ///< rows y = 1..gy, cols x = 1..gx
+    std::vector<std::vector<std::int64_t>> y;         ///< rows y = 1..gy, cols x = 1..gx
     std::vector<std::vector<std::int64_t>> combined;  ///< element-wise max of x and y
-    std::int64_t peak_x = 0;        ///< busiest horizontal cut of the x map
-    std::int64_t peak_y = 0;        ///< busiest vertical cut of the y map
-    std::int64_t peak_combined = 0;  ///< busiest cut of the combined map
+    std::int64_t peak_x = 0;                          ///< busiest horizontal cut of the x map
+    std::int64_t peak_y = 0;                          ///< busiest vertical cut of the y map
+    std::int64_t peak_combined = 0;                   ///< busiest cut of the combined map
 };
 
 /** \brief Derive the x / y / combined congestion maps from a routing analysis.
@@ -131,9 +129,8 @@ auto congestion_percent(const std::vector<std::vector<std::int64_t>>& raw)
  *  \param[in] pixel   pixel pitch of one grid cell
  *  \return the SVG document as a string
  */
-auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& place, int gx,
-                               int gy, const RoutingAnalysis& routing, int pixel = 40)
-    -> std::string;
+auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
+                               const RoutingAnalysis& routing, int pixel = 40) -> std::string;
 
 /** \brief Build one congestion heat-map SVG figure.
  *
@@ -142,6 +139,5 @@ auto make_routed_placement_svg(const SimpleNetlist& netlist, const Placement& pl
  *  \param[in] peak    busiest raw cut count, shown under the title
  *  \return the SVG document as a string
  */
-auto make_congestion_map_svg(const std::string& title,
-                             const std::vector<std::vector<int>>& percent, std::int64_t peak)
-    -> std::string;
+auto make_congestion_map_svg(const std::string& title, const std::vector<std::vector<int>>& percent,
+                             std::int64_t peak) -> std::string;

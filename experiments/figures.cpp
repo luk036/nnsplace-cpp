@@ -14,15 +14,14 @@
  * solution.
  */
 
-#include <nnsplace/global_routing.hpp>
-#include <nnsplace/placement.hpp>
-#include <nnsplace/placement_cfg.hpp>
-#include <nnsplace/readwrite.hpp>
-
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <nnsplace/global_routing.hpp>
+#include <nnsplace/placement.hpp>
+#include <nnsplace/placement_cfg.hpp>
+#include <nnsplace/readwrite.hpp>
 #include <optional>
 #include <string>
 
@@ -30,28 +29,28 @@ namespace fs = std::filesystem;
 
 namespace {
 
-auto write_file(const std::string& path, const std::string& content) -> void {
-    std::ofstream out(path);
-    out << content;
-}
+    auto write_file(const std::string& path, const std::string& content) -> void {
+        std::ofstream out(path);
+        out << content;
+    }
 
-auto write_figures(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
-                   const RoutingAnalysis& routing, const std::string& outdir) -> void {
-    const auto name = std::to_string(gx) + "x" + std::to_string(gy);
-    write_file(outdir + "/ioloop" + name + "-routed.svg",
-               make_routed_placement_svg(netlist, place, gx, gy, routing));
+    auto write_figures(const SimpleNetlist& netlist, const Placement& place, int gx, int gy,
+                       const RoutingAnalysis& routing, const std::string& outdir) -> void {
+        const auto name = std::to_string(gx) + "x" + std::to_string(gy);
+        write_file(outdir + "/ioloop" + name + "-routed.svg",
+                   make_routed_placement_svg(netlist, place, gx, gy, routing));
 
-    const auto maps = build_congestion_maps(routing, gx, gy);
-    write_file(outdir + "/congestion" + name + "-x.svg",
-               make_congestion_map_svg("Congestion x-direction (" + name + ")",
-                                       congestion_percent(maps.x), maps.peak_x));
-    write_file(outdir + "/congestion" + name + "-y.svg",
-               make_congestion_map_svg("Congestion y-direction (" + name + ")",
-                                       congestion_percent(maps.y), maps.peak_y));
-    write_file(outdir + "/congestion" + name + "-combined.svg",
-               make_congestion_map_svg("Congestion combined (" + name + ")",
-                                       congestion_percent(maps.combined), maps.peak_combined));
-}
+        const auto maps = build_congestion_maps(routing, gx, gy);
+        write_file(outdir + "/congestion" + name + "-x.svg",
+                   make_congestion_map_svg("Congestion x-direction (" + name + ")",
+                                           congestion_percent(maps.x), maps.peak_x));
+        write_file(outdir + "/congestion" + name + "-y.svg",
+                   make_congestion_map_svg("Congestion y-direction (" + name + ")",
+                                           congestion_percent(maps.y), maps.peak_y));
+        write_file(outdir + "/congestion" + name + "-combined.svg",
+                   make_congestion_map_svg("Congestion combined (" + name + ")",
+                                           congestion_percent(maps.combined), maps.peak_combined));
+    }
 
 }  // namespace
 
@@ -68,8 +67,8 @@ auto main(int argc, char* argv[]) -> int {
     const auto directed = read_directed_json_edges(file);
     const auto& netlist = directed.netlist;
     const auto n = netlist.number_of_modules();
-    const std::optional<double> cap_ratio = ratio > 0.0 ? std::optional<double>{ratio}
-                                                        : std::nullopt;
+    const std::optional<double> cap_ratio
+        = ratio > 0.0 ? std::optional<double>{ratio} : std::nullopt;
     NnsPlacer placer{netlist, NnsConfig{gx, gy, delta, delta, std::nullopt, cap_ratio},
                      directed.net_driver};
 

@@ -7,22 +7,20 @@
  *  ``nnsplace.placement`` module.
  */
 
-#include <nnsplace/placement.hpp>
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <numeric>
-#include <random>
-#include <stdexcept>
-#include <utility>
-#include <vector>
-
 #include <digraphx/min_parametric_q.hpp>
 #include <fractions/pyfractions.hpp>
 #include <mywheel/map_adapter.hpp>
+#include <nnsplace/placement.hpp>
+#include <numeric>
+#include <random>
 #include <recti/interval.hpp>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 auto create_flow_graph(const SimpleNetlist& hyprgraph,
                        const std::vector<std::optional<node_t>>& net_driver) -> FlowGraph {
@@ -210,8 +208,8 @@ auto NnsPlacer::module_slot_data(const node_t v, const Placement& place, const i
         suff[t] = mx;
     }
     const auto w0 = nnsplace_detail::worst_at(p0, as_, pref, suff, d_ax);
-    return nnsplace_detail::ModuleSlotData{p0, std::move(as_), std::move(pref),
-                                           std::move(suff), w0};
+    return nnsplace_detail::ModuleSlotData{p0, std::move(as_), std::move(pref), std::move(suff),
+                                           w0};
 }
 
 void NnsPlacer::add_radius_edges(const std::vector<node_t>& lst,
@@ -231,16 +229,14 @@ void NnsPlacer::add_radius_edges(const std::vector<node_t>& lst,
             if (q > 0 && !(reserved && q == reserved_col)) {
                 const auto w1 = sd.as_.empty()
                                     ? Coord{0}
-                                    : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff,
-                                                                d_ax);
+                                    : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff, d_ax);
                 candidates[k].emplace_back(static_cast<uint32_t>(q0 - ring), w1 - sd.w0);
             }
             q = p0 + ring;
             if (q <= grid && !(reserved && q == reserved_col)) {
                 const auto w1 = sd.as_.empty()
                                     ? Coord{0}
-                                    : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff,
-                                                                d_ax);
+                                    : nnsplace_detail::worst_at(q, sd.as_, sd.pref, sd.suff, d_ax);
                 candidates[k].emplace_back(static_cast<uint32_t>(q0 + ring), w1 - sd.w0);
             }
         }
@@ -248,8 +244,8 @@ void NnsPlacer::add_radius_edges(const std::vector<node_t>& lst,
 }
 
 void NnsPlacer::add_all_slots(const std::vector<node_t>& lst,
-                              std::vector<std::vector<CandidateEdge>>& candidates,
-                              Placement& place, const int axis) {
+                              std::vector<std::vector<CandidateEdge>>& candidates, Placement& place,
+                              const int axis) {
     const auto grid = cfg.grid[axis];
     const auto nmod = static_cast<Coord>(hyprgraph.number_of_modules());
     for (std::size_t k = 0; k < lst.size(); ++k) {
@@ -313,10 +309,9 @@ void NnsPlacer::legalize(const std::vector<node_t>& lst, Placement& place, const
     this->add_all_slots(full_lst, global, place, axis);
     auto matched = min_weight_full_matching(global);
     if (!matched) {
-        throw std::runtime_error("Failed to legalize " + std::to_string(m)
-                                 + " modules on axis " + std::to_string(axis) + " of grid "
-                                 + std::to_string(cfg.grid[0]) + "x"
-                                 + std::to_string(cfg.grid[1])
+        throw std::runtime_error("Failed to legalize " + std::to_string(m) + " modules on axis "
+                                 + std::to_string(axis) + " of grid " + std::to_string(cfg.grid[0])
+                                 + "x" + std::to_string(cfg.grid[1])
                                  + ": not enough free slots for the bucket (reserved_col="
                                  + std::to_string(reserved_col) + ").");
     }
