@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14...3.22)
 
 project(
   NnsPlace
-  VERSION 1.0.0
+  VERSION 1.0.1
   LANGUAGES CXX
 )
 
@@ -105,7 +105,7 @@ endif()
 
 CPMAddPackage(
   NAME Py2Cpp
-  GIT_TAG v1.6.4
+  GIT_TAG v1.6.6
   GITHUB_REPOSITORY luk036/py2cpp
   OPTIONS "INSTALL_ONLY ON" "PY2CPP_BUILD_TESTS OFF"
 )
@@ -117,7 +117,7 @@ endif()
 
 CPMAddPackage(
   NAME XNetwork
-  GIT_TAG v1.7.7
+  GIT_TAG v1.7.9
   GITHUB_REPOSITORY luk036/xnetwork-cpp
   OPTIONS "INSTALL_ONLY ON" "XNETWORK_BUILD_TESTS OFF"
 )
@@ -133,7 +133,7 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME DiGraphX
-  GIT_TAG v1.1.7
+  GIT_TAG v1.1.9
   GITHUB_REPOSITORY luk036/digraphx-cpp
   OPTIONS "INSTALL_ONLY ON" "DIGRAPHX_BUILD_TESTS OFF"
 )
@@ -141,7 +141,7 @@ CPMAddPackage(
 # NetlistX provides the SimpleNetlist type and the node-link JSON reader (netlistx-cpp).
 CPMAddPackage(
   NAME NetlistX
-  GIT_TAG v1.1.7
+  GIT_TAG v1.1.10
   GITHUB_REPOSITORY luk036/netlistx-cpp
   OPTIONS "INSTALL_ONLY ON" "NETLISTX_BUILD_TESTS OFF" "NETLISTX_BUILD_STANDALONE OFF"
 )
@@ -149,7 +149,7 @@ CPMAddPackage(
 # Recti provides recti::Interval<T> (physdes-cpp) for the hull-length metrics.
 CPMAddPackage(
   NAME Recti
-  GIT_TAG v1.2.4
+  GIT_TAG v1.2.5
   GITHUB_REPOSITORY luk036/physdes-cpp
   OPTIONS "INSTALL_ONLY ON" "RECTI_BUILD_TESTS OFF" "RECTI_BUILD_STANDALONE OFF"
 )
@@ -157,7 +157,7 @@ CPMAddPackage(
 # MyWheel provides the MapAdapter adjacency view used to feed the MinParametricSolver.
 CPMAddPackage(
   NAME MyWheel
-  GIT_TAG v1.1.6
+  GIT_TAG v1.1.7
   GITHUB_REPOSITORY luk036/mywheel-cpp
   OPTIONS "INSTALL_ONLY ON" "MYWHEEL_BUILD_TESTS OFF"
 )
